@@ -14,7 +14,7 @@ class Player:
         self.is_jumping = False
         self.gravity = 0.5
         self.jump_power = -12
-        self.inventory = set()
+        self.inventory = []  # Liste au lieu d'un set
         self.has_inversion_power = False
         
         # Variables pour l'animation
@@ -24,10 +24,10 @@ class Player:
         self.animation_speed = 0.15
         self.animation_timer = 0
         self.TOTAL_FRAMES = 11
-        self.JUMP_FRAME = 0  # La frame à utiliser pendant le saut (première frame)
+        self.JUMP_FRAME = 0  # La frame à utiliser pendant le saut
         
         try:
-            # Chargement et configuration des sprites de marche uniquement
+            # Chargement et configuration des sprites de marche
             walk_sheet = pygame.image.load('assets/image/walk_animation.png').convert_alpha()
             self.walk_frames = self.load_animation(walk_sheet)
             self.walk_frames_left = [pygame.transform.flip(frame, True, False) for frame in self.walk_frames]
@@ -82,21 +82,20 @@ class Player:
         if keys[pygame.K_SPACE] and not self.is_jumping:
             self.velocity_y = self.jump_power
             self.is_jumping = True
-            self.current_frame = self.JUMP_FRAME  # Forcer la frame de saut
+            self.current_frame = self.JUMP_FRAME
             
         # Application de la gravité
         self.velocity_y += self.gravity
         self.y += self.velocity_y
         
         # Limite au sol
-        if self.y > SCREEN_HEIGHT - self.height - 250:  # Remontée de 40 pixels
+        if self.y > SCREEN_HEIGHT - self.height - 250:
             self.y = SCREEN_HEIGHT - self.height - 250
             self.velocity_y = 0
             self.is_jumping = False
             
-        # Limites de l'écran
-        # Limites de l'écran avec une marge plus large
-        margin = SCREEN_WIDTH // 4  # Une marge d'un quart de l'écran
+        # Limites de l'écran avec marge
+        margin = SCREEN_WIDTH // 4
         self.x = max(-margin, min(self.x, SCREEN_WIDTH - self.width + margin))
         self.y = max(0, min(self.y, SCREEN_HEIGHT - self.height))
         
@@ -124,13 +123,25 @@ class Player:
         frame_to_use = self.JUMP_FRAME if self.is_jumping else self.current_frame
         current_frame = frames[frame_to_use]
         
+        # Créer une version inversée de la frame sans le fond blanc
         inverted_frame = pygame.Surface(current_frame.get_size(), pygame.SRCALPHA)
-        inverted_frame.fill((255, 255, 255, 255))
-        inverted_frame.blit(current_frame, (0, 0))
+        pixel_array = pygame.PixelArray(current_frame)
+        for x in range(current_frame.get_width()):
+            for y in range(current_frame.get_height()):
+                if current_frame.get_at((x, y))[3] > 0:  # Si le pixel n'est pas transparent
+                    inverted_frame.set_at((x, y), BLACK)
+        del pixel_array
+        
         screen.blit(inverted_frame, self.rect)
         
     def add_to_inventory(self, item):
-        self.inventory.add(item)
+        self.inventory.append(item)
         
     def has_item(self, item):
         return item in self.inventory
+        
+    def remove_from_inventory(self, item):
+        if item in self.inventory:
+            self.inventory.remove(item)
+            return True
+        return False

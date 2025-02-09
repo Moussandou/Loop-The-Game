@@ -6,13 +6,11 @@ from constants import *
 
 class Game:
     def __init__(self):
-        # Vérifier si pygame est déjà initialisé
         if not pygame.get_init():
             pygame.init()
         if not pygame.mixer.get_init():
             pygame.mixer.init()
         
-        # Configuration plein écran
         self.fullscreen = True
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption("Loop Escape")
@@ -29,23 +27,37 @@ class Game:
         }
         self.current_state = self.states['menu']
         
-        # Charger la musique
-        self.load_music()
+        # Configuration de la musique
+        self.menu_music_loaded = False
+        self.game_music_loaded = False
+        self.load_menu_music()
         
+    def load_menu_music(self):
+        try:
+            pygame.mixer.music.load('assets/music/menu.mp3')
+            pygame.mixer.music.set_volume(0.2)
+            pygame.mixer.music.play(-1)
+            self.menu_music_loaded = True
+            self.game_music_loaded = False
+        except:
+            print("Erreur: Impossible de charger la musique du menu")
+            
+    def load_game_music(self):
+        try:
+            pygame.mixer.music.load('assets/music/ambient.mp3')
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+            self.menu_music_loaded = False
+            self.game_music_loaded = True
+        except:
+            print("Erreur: Impossible de charger la musique du jeu")
+            
     def toggle_fullscreen(self):
         self.fullscreen = not self.fullscreen
         if self.fullscreen:
             self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         else:
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        
-    def load_music(self):
-        try:
-            pygame.mixer.music.load('assets/music/ambient.mp3')
-            pygame.mixer.music.set_volume(0.5)
-            pygame.mixer.music.play(-1)
-        except:
-            print("Erreur: Impossible de charger la musique")
 
     def run(self):
         while self.running:
@@ -73,8 +85,13 @@ class Game:
         pygame.display.flip()
         
     def change_state(self, state_name):
+        # Changer la musique selon l'état
+        if state_name == 'game' and not self.game_music_loaded:
+            self.load_game_music()
+        elif (state_name == 'menu' or state_name == 'options') and not self.menu_music_loaded:
+            self.load_menu_music()
+            
         if state_name == 'game':
-            # Réinitialiser le jeu si on commence une nouvelle partie
             self.states['game'] = GameState(self)
         self.current_state = self.states[state_name]
         
