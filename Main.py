@@ -1,3 +1,10 @@
+##
+## EPITECH PROJECT, 2025
+## Loop-The-Game
+## File description:
+## Main
+##
+
 # main.py
 import pygame
 import sys

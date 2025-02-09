@@ -1,3 +1,10 @@
+##
+## EPITECH PROJECT, 2025
+## Loop-The-Game
+## File description:
+## constants
+##
+
 import pygame
 
 # Initialiser pygame

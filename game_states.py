@@ -1,8 +1,16 @@
+##
+## EPITECH PROJECT, 2025
+## Loop-The-Game
+## File description:
+## game_states
+##
+
 # game_states.py
 import pygame
 import math
 from player import Player
 from room import Room, RoomManager
+from cinematics import CinematicManager
 from constants import *
 
 class Button:
@@ -55,76 +63,16 @@ class Button:
         
         return outer_rect
 
-class GameState:
-    def __init__(self, game):
-        self.game = game
-        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT - PLAYER_HEIGHT - 10)
-        self.room_manager = RoomManager()
-        self.room_manager.player = self.player  # Ajouter cette ligne
-        self.inverted_colors = False
-        self.font = pygame.font.Font(None, 48)
-        
-        # Chargement de l'icône de clé pour l'indicateur
-        try:
-            self.key_icon = pygame.image.load('assets/image/key.png').convert_alpha()
-            self.key_icon = pygame.transform.scale(self.key_icon, (40, 40))
-        except:
-            print("Erreur: Impossible de charger l'icône de clé")
-            self.key_icon = None
-        
-    def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                self.game.change_state('menu')
-            elif event.key == pygame.K_i and self.player.has_inversion_power:
-                self.inverted_colors = not self.inverted_colors
-                
-    def update(self):
-        keys = pygame.key.get_pressed()
-        self.player.update(keys)
-        self.room_manager.update(self.player)
-        
-        # Vérifier si le jeu est terminé
-        if self.room_manager.game_completed:
-            self.game.change_state('victory')
-
-    def draw_key_counter(self, screen):
-        # Créer une surface semi-transparente pour le fond
-        counter_surface = pygame.Surface((120, 60), pygame.SRCALPHA)
-        counter_surface.fill((0, 0, 0, 180))  # Fond noir semi-transparent
-        
-        # Position en haut à gauche
-        screen.blit(counter_surface, (20, 20))
-        
-        # Afficher l'icône de clé
-        if self.key_icon:
-            screen.blit(self.key_icon, (30, 30))
-        
-        # Compter les clés dans l'inventaire
-        key_count = self.player.inventory.count('key')
-        
-        # Afficher le compteur
-        keys_text = self.font.render(f"x {key_count}", True, WHITE)
-        screen.blit(keys_text, (80, 35))
-        
-    def draw(self, screen):
-        if not self.inverted_colors:
-            self.room_manager.draw(screen, False)
-            self.player.draw(screen)
-        else:
-            self.room_manager.draw(screen, True)
-            self.player.draw_inverted(screen)
-            
-        # Toujours afficher le compteur de clés par-dessus tout
-        self.draw_key_counter(screen)
-
 class MenuState:
-    # Chargement de l'image du titre
+    # Chargement de l'image du titre et du fond
     try:
         title_image = pygame.image.load('assets/image/title.png')
+        # Charger l'image de fond du menu
+        background_image = pygame.image.load('assets/image/menu_background.jpg')
     except pygame.error as e:
-        print(f"Erreur: Impossible de charger le titre: {e}")
+        print(f"Erreur: Impossible de charger les images: {e}")
         title_image = None
+        background_image = None
 
     def __init__(self, game):
         self.game = game
@@ -141,11 +89,15 @@ class MenuState:
         self.mouse_pos = (0, 0)
         self.animation_time = 0
         
-        # Redimensionner le titre
+        # Redimensionner le titre et le fond
         if MenuState.title_image:
-            title_width = 900  # ou la largeur souhaitée
-            title_height = 400  # ou la hauteur souhaitée
+            title_width = 900
+            title_height = 400
             self.title = pygame.transform.scale(MenuState.title_image, (title_width, title_height))
+        
+        # Redimensionner le fond
+        if MenuState.background_image:
+            self.background = pygame.transform.scale(MenuState.background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -185,7 +137,12 @@ class MenuState:
         self.animation_time += 0.02
         
     def draw(self, screen):
-        screen.fill(BLACK)
+        # Dessiner le fond
+        if hasattr(self, 'background'):
+            screen.blit(self.background, (0, 0))
+        else:
+            # Fond de secours si l'image ne charge pas
+            screen.fill(BLACK)
         
         if hasattr(self, 'title'):
             # Animation de flottement pour le titre
@@ -199,6 +156,104 @@ class MenuState:
             is_selected = button_name == self.selected
             is_hovered = button.draw(screen).collidepoint(self.mouse_pos)
             button.draw(screen, is_selected, is_hovered)
+class GameState:
+    def __init__(self, game):
+        self.game = game
+        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT - PLAYER_HEIGHT - 10)
+        self.room_manager = RoomManager()
+        self.room_manager.player = self.player
+        self.inverted_colors = False
+        self.font = pygame.font.Font(None, 48)
+        self.cinematic_manager = CinematicManager()
+        
+        # Lancer la cinématique d'intro au début
+        self.cinematic_manager.play_cinematic('intro')
+        
+        # Chargement de l'icône de clé pour l'indicateur
+        try:
+            self.key_icon = pygame.image.load('assets/image/key.png').convert_alpha()
+            self.key_icon = pygame.transform.scale(self.key_icon, (40, 40))
+        except:
+            print("Erreur: Impossible de charger l'icône de clé")
+            self.key_icon = None
+
+    def draw_key_counter(self, screen):
+        # Créer une surface semi-transparente pour le fond
+        counter_surface = pygame.Surface((120, 60), pygame.SRCALPHA)
+        counter_surface.fill((0, 0, 0, 180))  # Fond noir semi-transparent
+        
+        # Position en haut à gauche
+        screen.blit(counter_surface, (20, 20))
+        
+        # Afficher l'icône de clé
+        if self.key_icon:
+            screen.blit(self.key_icon, (30, 30))
+        
+        # Compter les clés dans l'inventaire
+        key_count = self.player.inventory.count('key')
+        
+        # Afficher le compteur
+        keys_text = self.font.render(f"x {key_count}", True, WHITE)
+        screen.blit(keys_text, (80, 35))
+        
+    def handle_event(self, event):
+        # Si une cinématique est en cours, transférer les événements à la cinématique
+        if self.cinematic_manager.is_playing():
+            self.cinematic_manager.update([event])
+            return
+            
+        # Gestion normale des événements du jeu
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.game.change_state('menu')
+            elif event.key == pygame.K_i and self.player.has_inversion_power:
+                self.inverted_colors = not self.inverted_colors
+                
+    def update(self):
+        if self.cinematic_manager.is_playing():
+            # Si une cinématique vient de se terminer
+            if self.cinematic_manager.update(pygame.event.get()):
+                # Si c'était la cinématique de fin
+                if 'ending' in self.cinematic_manager.played_cinematics:
+                    self.game.change_state('victory')
+            return
+
+        # Mettre à jour le jeu
+        keys = pygame.key.get_pressed()
+        self.player.update(keys)
+        self.room_manager.update(self.player)
+        
+        # Vérifier les conditions pour lancer les cinématiques
+        current_room = self.room_manager.current_room.room_id
+        
+        # Première clé
+        if current_room == 4 and 'first_key' not in self.cinematic_manager.played_cinematics:
+            self.cinematic_manager.play_cinematic('first_key')
+            
+        # Pouvoir d'inversion
+        elif current_room == 6 and 'power' not in self.cinematic_manager.played_cinematics:
+            self.cinematic_manager.play_cinematic('power')
+            
+        # Victoire
+        if self.room_manager.game_completed and 'ending' not in self.cinematic_manager.played_cinematics:
+            self.cinematic_manager.play_cinematic('ending')
+        
+    def draw(self, screen):
+        # Si une cinématique est en cours, afficher uniquement la cinématique
+        if self.cinematic_manager.is_playing():
+            self.cinematic_manager.draw(screen)
+            return
+            
+        # Affichage normal du jeu
+        if not self.inverted_colors:
+            self.room_manager.draw(screen, False)
+            self.player.draw(screen)
+        else:
+            self.room_manager.draw(screen, True)
+            self.player.draw_inverted(screen)
+            
+        # Toujours afficher le compteur de clés par-dessus
+        self.draw_key_counter(screen)
 
 class OptionsState:
     def __init__(self, game):
@@ -289,34 +344,34 @@ class VictoryState:
         self.animation_time += 0.02
         
     def draw(self, screen):
-        screen.fill(BLACK)
-        
-        # Titre victorieux animé
-        title_font = pygame.font.Font(None, 100)
-        
-        # Texte principal avec effet arc-en-ciel
-        main_text = "Félicitations !"
-        offset_y = math.sin(self.animation_time) * 20
-        
-        # Créer un effet arc-en-ciel
-        for i in range(len(main_text)):
-            hue = (self.animation_time * 100 + i * 20) % 360
-            color = pygame.Color(0)
-            color.hsva = (hue, 100, 100, 100)
+            screen.fill(BLACK)
             
-            char = title_font.render(main_text[i], True, color)
-            x = SCREEN_WIDTH//2 - (len(main_text) * 25) + (i * 50)
-            y = SCREEN_HEIGHT//3 + offset_y
-            screen.blit(char, (x, y))
-        
-        # Sous-titre
-        subtitle_font = pygame.font.Font(None, 64)
-        subtitle = subtitle_font.render("Vous vous êtes échappé !", True, WHITE)
-        subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
-        screen.blit(subtitle, subtitle_rect)
-        
-        # Dessiner le bouton
-        for button_name, button in self.buttons.items():
-            is_selected = button_name == self.selected
-            is_hovered = button.draw(screen).collidepoint(self.mouse_pos)
-            button.draw(screen, is_selected, is_hovered)
+            # Titre victorieux animé
+            title_font = pygame.font.Font(None, 100)
+            
+            # Texte principal avec effet arc-en-ciel
+            main_text = "Félicitations !"
+            offset_y = math.sin(self.animation_time) * 20
+            
+            # Créer un effet arc-en-ciel
+            for i in range(len(main_text)):
+                hue = (self.animation_time * 100 + i * 20) % 360
+                color = pygame.Color(0)
+                color.hsva = (hue, 100, 100, 100)
+                
+                char = title_font.render(main_text[i], True, color)
+                x = SCREEN_WIDTH//2 - (len(main_text) * 25) + (i * 50)
+                y = SCREEN_HEIGHT//3 + offset_y
+                screen.blit(char, (x, y))
+            
+            # Sous-titre
+            subtitle_font = pygame.font.Font(None, 64)
+            subtitle = subtitle_font.render("Vous vous êtes échappé !", True, WHITE)
+            subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+            screen.blit(subtitle, subtitle_rect)
+            
+            # Dessiner le bouton
+            for button_name, button in self.buttons.items():
+                is_selected = button_name == self.selected
+                is_hovered = button.draw(screen).collidepoint(self.mouse_pos)
+                button.draw(screen, is_selected, is_hovered)
