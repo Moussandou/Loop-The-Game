@@ -10,7 +10,6 @@ class Cinematic:
         self.skipped = False
         self.frame_surface = None
         
-        # Gestion du son
         self.sound = None
         if sound_path:
             try:
@@ -19,17 +18,14 @@ class Cinematic:
             except Exception as e:
                 print(f"Erreur de chargement du son : {e}")
         
-        # Obtenir les dimensions de la vidéo
         self.width = int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
-        # Créer un texte pour le bouton skip
         self.font = pygame.font.Font(None, 36)
         self.skip_text = self.font.render("Appuyez sur ESPACE pour passer", True, WHITE)
         self.skip_rect = self.skip_text.get_rect(bottomright=(SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20))
         
     def update(self, events):
-        # Vérifier si on veut skipper la cinématique
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 self.skipped = True
@@ -38,10 +34,8 @@ class Cinematic:
                     self.sound.stop()
                 return
         
-        # Lire la prochaine frame
         ret, frame = self.video.read()
         if ret:
-            # Convertir la frame OpenCV en surface Pygame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.resize(frame, (SCREEN_WIDTH, SCREEN_HEIGHT))
             frame = np.rot90(frame)
@@ -88,15 +82,12 @@ class CinematicManager:
         
     def play_cinematic(self, cinematic_name):
         if cinematic_name not in self.played_cinematics and cinematic_name in self.cinematics:
-            # Récupérer les chemins de la vidéo et du son
             video_path = self.cinematics[cinematic_name]['video']
             sound_path = self.cinematics[cinematic_name]['sound']
             
-            # Créer la cinématique avec vidéo et son
             self.current_cinematic = Cinematic(video_path, sound_path)
             self.played_cinematics.add(cinematic_name)
             
-            # Mettre en pause la musique de fond
             pygame.mixer.music.pause()
             
             return True
@@ -106,7 +97,6 @@ class CinematicManager:
         if self.current_cinematic:
             self.current_cinematic.update(events)
             if self.current_cinematic.finished:
-                # Reprendre la musique de fond
                 pygame.mixer.music.unpause()
                 self.current_cinematic = None
                 return True

@@ -5,13 +5,11 @@
 ## room
 ##
 
-# room.py
 import pygame
 import math
 from constants import *
 
 class Room:
-    # Chargement des images une seule fois pour toutes les salles
     try:
         background_image = pygame.image.load('assets/image/background.jpg')
         background_inverted = pygame.image.load('assets/image/background_inversé.jpg')
@@ -36,7 +34,6 @@ class Room:
             self.background = pygame.transform.scale(Room.background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
             self.background_inverted = pygame.transform.scale(Room.background_inverted, (SCREEN_WIDTH, SCREEN_HEIGHT))
             
-        # Redimensionner les sprites
         if Room.key_sprite:
             self.key_sprite = pygame.transform.scale(Room.key_sprite, (40, 40))
         if Room.switch_on:
@@ -63,11 +60,9 @@ class Room:
         self.key_in_range = None
         
     def draw(self, screen, is_inverted=False, player_has_key=False):
-        # Mise à jour de l'animation
         self.animation_time += 0.05
         float_offset = math.sin(self.animation_time) * 10
 
-        # Dessiner le fond selon le mode
         if hasattr(self, 'background') and hasattr(self, 'background_inverted'):
             if not is_inverted:
                 screen.blit(self.background, (0, 0))
@@ -76,11 +71,9 @@ class Room:
         else:
             screen.fill(BLACK if not is_inverted else WHITE)
             
-        # Dessiner les portes
         for door in self.doors.values():
             pygame.draw.rect(screen, WHITE if not is_inverted else BLACK, door)
             
-        # Dessiner le décor spécial si présent
         if self.special_decor:
             if not is_inverted:
                 pygame.draw.rect(screen, GRAY, self.special_decor)
@@ -88,7 +81,6 @@ class Room:
                 pygame.draw.rect(screen, WHITE, self.special_decor)
             
         if not is_inverted:
-            # Dessiner les objets visibles
             for pos, item_type in self.items.items():
                 if item_type == 'key' and hasattr(self, 'key_sprite'):
                     screen.blit(self.key_sprite, 
@@ -99,7 +91,6 @@ class Room:
                     screen.blit(self.power_sprite, 
                               (pos[0] - 50, pos[1] - 200 + float_offset))
             
-            # Dessiner les interrupteurs normaux
             for pos, is_activated in self.switches.items():
                 sprite = self.switch_on if is_activated else self.switch_off
                 if sprite:
@@ -107,8 +98,6 @@ class Room:
                     if self.switch_in_range == pos and player_has_key and not is_activated and hasattr(self, 'button_e'):
                         screen.blit(self.button_e, (pos[0] - 15, pos[1] - 200))
         else:
-            # Mode inversé
-            # Dessiner les objets cachés
             for pos, item_type in self.hidden_items.items():
                 if item_type == 'key' and hasattr(self, 'key_sprite'):
                     screen.blit(self.key_sprite, 
@@ -116,7 +105,6 @@ class Room:
                     if self.key_in_range == pos:
                         screen.blit(self.button_e, (pos[0] - 15, pos[1] - 180))
             
-            # Dessiner les interrupteurs cachés
             for pos, is_activated in self.hidden_switches.items():
                 sprite = self.switch_on if is_activated else self.switch_off
                 if sprite:
@@ -139,26 +127,23 @@ class RoomManager:
                                   SCREEN_HEIGHT//2 - SCREEN_HEIGHT//10, 
                                   SCREEN_WIDTH//5, SCREEN_HEIGHT//5)
         
-        # Positions ajustées
         key_y = SCREEN_HEIGHT * 0.65
         switch_y = SCREEN_HEIGHT * 0.65
         power_y = SCREEN_HEIGHT * 0.6
         
-        # Création des pièces avec leurs objets et connexions
         self.rooms = {
-            0: Room(0),  # Salle vide initiale
-            1: Room(1),  # Salle vide initiale
-            2: Room(2),  # Salle avec décor bougé, special_decor=special_decor),
-            3: Room(3, hidden_switches={(SCREEN_WIDTH//2, switch_y): False}),  # Interrupteur caché
-            4: Room(4, items={(SCREEN_WIDTH//4, key_y): 'key'}),  # Première clé visible
-            5: Room(5, switches={(SCREEN_WIDTH//2, switch_y): False}),  # Premier interrupteur
-            6: Room(6, items={(SCREEN_WIDTH//2, power_y): 'inversion_power'}),  # Pouvoir d'inversion
-            7: Room(7, items={(3*SCREEN_WIDTH//4, key_y): 'key'}),  # Deuxième clé
-            8: Room(8, switches={(SCREEN_WIDTH//3, switch_y): False}),  # Deuxième interrupteur
-            9: Room(9, hidden_items={(3*SCREEN_WIDTH//4, key_y): 'key'}),  # Troisième clé cachée
+            0: Room(0),
+            1: Room(1),
+            2: Room(2),
+            3: Room(3, hidden_switches={(SCREEN_WIDTH//2, switch_y): False}),
+            4: Room(4, items={(SCREEN_WIDTH//4, key_y): 'key'}),
+            5: Room(5, switches={(SCREEN_WIDTH//2, switch_y): False}),
+            6: Room(6, items={(SCREEN_WIDTH//2, power_y): 'inversion_power'}),
+            7: Room(7, items={(3*SCREEN_WIDTH//4, key_y): 'key'}),
+            8: Room(8, switches={(SCREEN_WIDTH//3, switch_y): False}),
+            9: Room(9, hidden_items={(3*SCREEN_WIDTH//4, key_y): 'key'}),
         }
         
-        # Établir les connexions entre les pièces dans l'ordre
         self.rooms[0].next_room = {'front': 1, 'back': 9}
         self.rooms[1].next_room = {'front': 2, 'back': 0}
         self.rooms[2].next_room = {'front': 3, 'back': 1}
@@ -186,11 +171,9 @@ class RoomManager:
         current_time = pygame.time.get_ticks()
         keys = pygame.key.get_pressed()
         
-        # Réinitialiser les éléments en portée
         self.current_room.switch_in_range = None
         self.current_room.key_in_range = None
         
-        # Gestion des portes, même code qu'avant
         for direction, door in self.current_room.doors.items():
             extended_door = pygame.Rect(
                 door.x - 50 if direction == 'back' else door.x, 
@@ -213,7 +196,6 @@ class RoomManager:
                                 player.x = self.current_room.doors['front'].left - player.width 
                             self.last_teleport_time = current_time
         
-        # Vérifier les collisions avec les objets
         for obj_dict, offset_y in [(self.current_room.items, -150), (self.current_room.hidden_items, -150)]:
             for pos, item_type in list(obj_dict.items()):
                 item_rect = pygame.Rect(
@@ -240,7 +222,7 @@ class RoomManager:
                         self.current_room.switch_in_range = pos
                         if keys[pygame.K_e] and 'key' in player.inventory:
                             switches[pos] = True
-                            player.inventory.remove('key')  # Une clé = un interrupteur
+                            player.inventory.remove('key')
                 
     def draw(self, screen, is_inverted=False):
         has_key = 'key' in self.player.inventory if self.player else False
